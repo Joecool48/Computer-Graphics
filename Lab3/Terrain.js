@@ -290,15 +290,17 @@ class Terrain{
         explored_set.add(p3);
         explored_set.add(p4);
 
-        prev_added_points = [p1, p2, p3, p4];
+        var prev_added_points = [p1, p2, p3, p4];
 
         var diamond_step = true;
 
-        var step_size = (this.div - 1) / 2;
+        var step_size = (this.div) / 2;
         // for every diamond step, take steps in every diagnal direction, and
         // try to compute the midpoint there
 
         while (prev_added_points.length > 0 && step_size > 0) {
+          console.log (prev_added_points.length);
+          console.log(step_size);
             if (diamond_step) {
                 // go through all the old points, and check them all for new diamond values to add
                 var len = prev_added_points.length;
@@ -329,7 +331,7 @@ class Terrain{
                         prev_added_points.push(new_pt);
                     }
                 }
-                diamond_step = ~diamond_step;
+                diamond_step = !diamond_step;
             }
             /* otherwise it is a square step */
             else {
@@ -337,32 +339,29 @@ class Terrain{
                 for (var i = 0; i < len; i++) {
                     var curr_pt = prev_added_points.pop();
                     var new_pt = [curr_pt[0] + step_size, curr_pt[1]];
-                    if (in_bounds(new_pt) && !explored_set.has(new_pt)) {
-                        do_square(new_pt, step_size, bias);
+                    if (this.in_bounds(new_pt) && !explored_set.has(new_pt)) {
+                        this.do_square(new_pt, step_size, bias);
                         explored_set.add(new_pt);
                         prev_added_points.push(new_pt);
                     }
                     new_pt = [curr_pt[0] - step_size, curr_pt[1]];
-                    if (in_bounds(new_pt) && !explored_set.has(new_pt)) {
-                        do_square(new_pt, step_size, bias);
+                    if (this.in_bounds(new_pt) && !explored_set.has(new_pt)) {
+                        this.do_square(new_pt, step_size, bias);
                         explored_set.add(new_pt);
                         prev_added_points.push(new_pt);
                     }
                     new_pt = [curr_pt[0], curr_pt[1] + step_size];
-                    if (in_bounds(new_pt) && !explored_set.has(new_pt)) {
-                        do_square(new_pt, step_size, bias);
+                    if (this.in_bounds(new_pt) && !explored_set.has(new_pt)) {
+                        this.do_square(new_pt, step_size, bias);
                         explored_set.add(new_pt);
                         prev_added_points.push(new_pt);
                     }
                     new_pt = [curr_pt[0], curr_pt[1] - step_size];
-                    if (in_bounds(new_pt) && !explored_set.has(new_pt)) {
-                        do_square(new_pt, step_size, bias);
+                    if (this.in_bounds(new_pt) && !explored_set.has(new_pt)) {
+                        this.do_square(new_pt, step_size, bias);
                         explored_set.add(new_pt);
                         prev_added_points.push(new_pt);
                     }
-
-                    diamond_step = ~diamond_step;
-                    step_size -= 1; // decrease step size
                 }
 
                 bias -= Math.random() * .1; // decrease the bias for tweaking terrain noise
