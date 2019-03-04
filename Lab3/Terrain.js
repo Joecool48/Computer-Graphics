@@ -184,9 +184,9 @@ class Terrain{
     }
 
     // function to find the square corners by step size, average them, and set pt to that average plus a random bias
-    do_square(pt, step_size, bias) {
+    do_square(pt, step_size, rand) {
         // first find all the nodes step size away horizontally and vertically
-        if (!this.in_bounds(pt)) console.log("Why would you give me this?");
+        if (!this.in_bounds(pt)) return;
         var total = 0;
         var count = 0;
         var ret_pt = [];
@@ -218,14 +218,14 @@ class Terrain{
         if (count != 0) {
             var new_pt_val = [];
             this.getVertex(new_pt_val, pt[1], pt[0]);
-            var new_height = (total / count) + (Math.random() * bias);
+            var new_height = (total / count) + rand;
             this.setVertex([new_pt_val[0], new_pt_val[1], new_height], pt[1], pt[0]);
         }
 
     }
     // function to get values at diamond angles, average them, and then assign point a random bias
-    do_diamond(pt, step_size, bias) {
-        if (!this.in_bounds(pt)) console.log("Why would you give me this?");
+    do_diamond(pt, step_size, rand) {
+        if (!this.in_bounds(pt)) return;
         var total = 0;
         var count = 0;
         var ret_pt = [];
@@ -257,122 +257,46 @@ class Terrain{
         if (count != 0) {
             var new_pt_val = [];
             this.getVertex(new_pt_val, pt[1], pt[0]);
-            var new_height = (total / count) + (Math.random() * bias);
+            var new_height = (total / count) + rand;
             this.setVertex([new_pt_val[0], new_pt_val[1], new_height], pt[1], pt[0]);
         }
+    }
+
+    subdivide(size, roughness) {
+        var x, y;
+        var half = size / 2;
+        if (half < 1) return;
+
+        for (y = half; y < this.div; y += size) {
+            for (x = half; x < this.div; x += size) {
+                this.do_diamond([x,y], half, this.getRandom(roughness));
+            }
+        }
+
+        for (y = 0; y <= this.div; y += half) {
+            for (x = (y + half) % size; x <= this.div; x += size) {
+                this.do_square([x,y], half, this.getRandom(roughness));
+            }
+        }
+        this.subdivide(size / 2, roughness / 2);
     }
 
     diamondSquare() {
         // Set the starting vertices
 
         // set the bias
-        var bias = 1;
+        var roughness = .1
         var v = [];
         this.getVertex(v, 0, 0);
-        this.setVertex([v[0], v[1], this.getRandom(bias)], 0, 0);
+        this.setVertex([v[0], v[1], this.getRandom(roughness)], 0, 0);
         this.getVertex(v, (this.div), (this.div));
-        this.setVertex([v[0], v[1], this.getRandom(bias)], (this.div), (this.div));
+        this.setVertex([v[0], v[1], this.getRandom(roughness)], (this.div), (this.div));
         this.getVertex(v, (this.div), 0);
-        this.setVertex([v[0], v[1], this.getRandom(bias)], (this.div), 0);
+        this.setVertex([v[0], v[1], this.getRandom(roughness)], (this.div), 0);
         this.getVertex(v, 0, (this.div));
-        this.setVertex([v[0], v[1], this.getRandom(bias)], 0, (this.div));
-        var setCount = 0;
-        var p1 = [0, 0];
-        var p2 = [this.div, 0];
-        var p3 = [0, this.div];
-        var p4 = [this.div, this.div];
+        this.setVertex([v[0], v[1], this.getRandom(roughness)], 0, (this.div));
 
-        bias = .5;
-
-        var explored_set = new Set();
-        explored_set.add(p1);
-        explored_set.add(p2);
-        explored_set.add(p3);
-        explored_set.add(p4);
-
-        var prev_added_points = [p1, p2, p3, p4];
-
-        var diamond_step = true;
-
-        var step_size = (this.div) / 2;
-        // for every diamond step, take steps in every diagnal direction, and
-        // try to compute the midpoint there
-
-        while (prev_added_points.length > 0 && step_size > 0) {
-          console.log (prev_added_points.length);
-          console.log(step_size);
-            if (diamond_step) {
-                // go through all the old points, and check them all for new diamond values to add
-                var len = prev_added_points.length;
-                for (var i = 0; i < len; i++) {
-                    var curr_pt = prev_added_points.pop();
-                    var new_pt = [curr_pt[0] + step_size, curr_pt[1] + step_size];
-                    if (this.in_bounds(new_pt) && !explored_set.has(new_pt)) {
-                        this.do_diamond(new_pt, step_size, bias);
-                        explored_set.add(new_pt);
-                        prev_added_points.push(new_pt);
-                    }
-                    new_pt = [curr_pt[0] + step_size, curr_pt[1] - step_size];
-                    if (this.in_bounds(new_pt) && !explored_set.has(new_pt)) {
-                        this.do_diamond(new_pt, step_size, bias);
-                        explored_set.add(new_pt);
-                        prev_added_points.push(new_pt);
-                    }
-                    new_pt = [curr_pt[0] - step_size, curr_pt[1] + step_size];
-                    if (this.in_bounds(new_pt) && !explored_set.has(new_pt)) {
-                        this.do_diamond(new_pt, step_size, bias);
-                        explored_set.add(new_pt);
-                        prev_added_points.push(new_pt);
-                    }
-                    new_pt = [curr_pt[0] - step_size, curr_pt[1] - step_size];
-                    if (this.in_bounds(new_pt) && !explored_set.has(new_pt)) {
-                        this.do_diamond(new_pt, step_size, bias);
-                        explored_set.add(new_pt);
-                        prev_added_points.push(new_pt);
-                    }
-                }
-                diamond_step = !diamond_step;
-            }
-            /* otherwise it is a square step */
-            else {
-                var len = prev_added_points.length;
-                for (var i = 0; i < len; i++) {
-                    var curr_pt = prev_added_points.pop();
-                    var new_pt = [curr_pt[0] + step_size, curr_pt[1]];
-                    if (this.in_bounds(new_pt) && !explored_set.has(new_pt)) {
-                        this.do_square(new_pt, step_size, bias);
-                        explored_set.add(new_pt);
-                        prev_added_points.push(new_pt);
-                    }
-                    new_pt = [curr_pt[0] - step_size, curr_pt[1]];
-                    if (this.in_bounds(new_pt) && !explored_set.has(new_pt)) {
-                        this.do_square(new_pt, step_size, bias);
-                        explored_set.add(new_pt);
-                        prev_added_points.push(new_pt);
-                    }
-                    new_pt = [curr_pt[0], curr_pt[1] + step_size];
-                    if (this.in_bounds(new_pt) && !explored_set.has(new_pt)) {
-                        this.do_square(new_pt, step_size, bias);
-                        explored_set.add(new_pt);
-                        prev_added_points.push(new_pt);
-                    }
-                    new_pt = [curr_pt[0], curr_pt[1] - step_size];
-                    if (this.in_bounds(new_pt) && !explored_set.has(new_pt)) {
-                        this.do_square(new_pt, step_size, bias);
-                        explored_set.add(new_pt);
-                        prev_added_points.push(new_pt);
-                    }
-                }
-
-                bias -= Math.random() * .1; // decrease the bias for tweaking terrain noise
-                diamond_step = ~diamond_step;
-                step_size -= 1;
-            }
-
-        }
-
-
-
+        this.subdivide(this.div - 1, roughness);
     }
 
 

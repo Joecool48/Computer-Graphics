@@ -1,7 +1,7 @@
 
 /**
  * @file A simple WebGL example drawing central Illinois style terrain
- * @author Eric Shaffer <shaffer1@illinois.edu>  
+ * @author Eric Shaffer <shaffer1@illinois.edu>
  */
 
 /** @global The WebGL context */
@@ -29,7 +29,7 @@ var mvMatrixStack = [];
 var viewRot = 10;
 
 /** @global A glmatrix vector to use for transformations */
-var transformVec = vec3.create();    
+var transformVec = vec3.create();
 
 // Initialize the vector....
 vec3.set(transformVec,0.0,0.0,-2.0);
@@ -87,7 +87,7 @@ function uploadModelViewMatrixToShader() {
  * Sends projection matrix to shader
  */
 function uploadProjectionMatrixToShader() {
-  gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, 
+  gl.uniformMatrix4fv(shaderProgram.pMatrixUniform,
                       false, pMatrix);
 }
 
@@ -176,13 +176,13 @@ function createGLContext(canvas) {
  */
 function loadShaderFromDOM(id) {
   var shaderScript = document.getElementById(id);
-  
+
   // If we don't find an element with the specified id
-  // we do an early exit 
+  // we do an early exit
   if (!shaderScript) {
     return null;
   }
-  
+
   // Loop through the children for the found DOM element and
   // build up the shader source code as a string
   var shaderSource = "";
@@ -193,7 +193,7 @@ function loadShaderFromDOM(id) {
     }
     currentChild = currentChild.nextSibling;
   }
- 
+
   var shader;
   if (shaderScript.type == "x-shader/x-fragment") {
     shader = gl.createShader(gl.FRAGMENT_SHADER);
@@ -202,14 +202,14 @@ function loadShaderFromDOM(id) {
   } else {
     return null;
   }
- 
+
   gl.shaderSource(shader, shaderSource);
   gl.compileShader(shader);
- 
+
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
     alert(gl.getShaderInfoLog(shader));
     return null;
-  } 
+  }
   return shader;
 }
 
@@ -220,7 +220,7 @@ function loadShaderFromDOM(id) {
 function setupShaders() {
   vertexShader = loadShaderFromDOM("shader-vs");
   fragmentShader = loadShaderFromDOM("shader-fs");
-  
+
   shaderProgram = gl.createProgram();
   gl.attachShader(shaderProgram, vertexShader);
   gl.attachShader(shaderProgram, fragmentShader);
@@ -241,12 +241,12 @@ function setupShaders() {
   shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
   shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
   shaderProgram.nMatrixUniform = gl.getUniformLocation(shaderProgram, "uNMatrix");
-  shaderProgram.uniformLightPositionLoc = gl.getUniformLocation(shaderProgram, "uLightPosition");    
-  shaderProgram.uniformAmbientLightColorLoc = gl.getUniformLocation(shaderProgram, "uAmbientLightColor");  
+  shaderProgram.uniformLightPositionLoc = gl.getUniformLocation(shaderProgram, "uLightPosition");
+  shaderProgram.uniformAmbientLightColorLoc = gl.getUniformLocation(shaderProgram, "uAmbientLightColor");
   shaderProgram.uniformDiffuseLightColorLoc = gl.getUniformLocation(shaderProgram, "uDiffuseLightColor");
   shaderProgram.uniformSpecularLightColorLoc = gl.getUniformLocation(shaderProgram, "uSpecularLightColor");
-  shaderProgram.uniformShininessLoc = gl.getUniformLocation(shaderProgram, "uShininess");    
-  shaderProgram.uniformAmbientMaterialColorLoc = gl.getUniformLocation(shaderProgram, "uKAmbient");  
+  shaderProgram.uniformShininessLoc = gl.getUniformLocation(shaderProgram, "uShininess");
+  shaderProgram.uniformAmbientMaterialColorLoc = gl.getUniformLocation(shaderProgram, "uKAmbient");
   shaderProgram.uniformDiffuseMaterialColorLoc = gl.getUniformLocation(shaderProgram, "uKDiffuse");
   shaderProgram.uniformSpecularMaterialColorLoc = gl.getUniformLocation(shaderProgram, "uKSpecular");
 }
@@ -286,7 +286,7 @@ function setLightUniforms(loc,a,d,s) {
  * Populate buffers with data
  */
 function setupBuffers() {
-    myTerrain = new Terrain(10,-0.5,0.5,-0.5,0.5);
+    myTerrain = new Terrain(17,-0.5,0.5,-0.5,0.5);
     myTerrain.loadBuffers();
 }
 
@@ -294,23 +294,23 @@ function setupBuffers() {
 /**
  * Draw call that applies matrix transformations to model and draws model in frame
  */
-function draw() { 
+function draw() {
     //console.log("function draw()")
     var transformVec = vec3.create();
-  
+
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // We'll use perspective 
-    mat4.perspective(pMatrix,degToRad(45), 
+    // We'll use perspective
+    mat4.perspective(pMatrix,degToRad(45),
                      gl.viewportWidth / gl.viewportHeight,
                      0.1, 200.0);
 
-    // We want to look down -z, so create a lookat point in that direction    
+    // We want to look down -z, so create a lookat point in that direction
     vec3.add(viewPt, eyePt, viewDir);
     // Then generate the lookat matrix and initialize the MV matrix to that view
-    mat4.lookAt(mvMatrix,eyePt,viewPt,up);    
- 
+    mat4.lookAt(mvMatrix,eyePt,viewPt,up);
+
     //Draw Terrain
     mvPushMatrix();
     vec3.set(transformVec,0.0,-0.25,-2.0);
@@ -319,13 +319,13 @@ function draw() {
     mat4.rotateX(mvMatrix, mvMatrix, degToRad(-75));
     setMatrixUniforms();
     setLightUniforms(lightPosition,lAmbient,lDiffuse,lSpecular);
-    
+
     if ((document.getElementById("polygon").checked) || (document.getElementById("wirepoly").checked))
-    { 
-      setMaterialUniforms(shininess,kAmbient,kTerrainDiffuse,kSpecular); 
+    {
+      setMaterialUniforms(shininess,kAmbient,kTerrainDiffuse,kSpecular);
       myTerrain.drawTriangles();
     }
-    
+
     if(document.getElementById("wirepoly").checked)
     {
       setMaterialUniforms(shininess,kAmbient,kEdgeBlack,kSpecular);
@@ -339,7 +339,7 @@ function draw() {
     }
     mvPopMatrix();
 
-  
+
 }
 
 //----------------------------------------------------------------------------------
