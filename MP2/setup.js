@@ -1,7 +1,8 @@
 
 /**
- * @file A simple WebGL example drawing central Illinois style terrain
- * @author Eric Shaffer <shaffer1@illinois.edu>
+ * @file setup - A helper file for creating the terrain
+ * @author Joey Bahary
+ * Modified from Eric Shaffer's Lab3 Code
  */
 
 /** @global The WebGL context */

@@ -1,6 +1,7 @@
 /**
- * @fileoverview Terrain - A simple 3D terrain using WebGL
- * @author Eric Shaffer
+ * @fileoverview generate - A simple 3D terrain using WebGL. Also color maps in the vertex shader and does Binn Phong lighting
+ * @author Joey Bahary
+ * Modified from Eric Shaffer's Lab3 Code
  */
 
 function max(a, b, c, d) {
