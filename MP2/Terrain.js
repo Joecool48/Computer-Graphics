@@ -90,6 +90,39 @@ class Terrain{
         v[1] = this.vBuffer[vid + 1];
         v[2] = this.vBuffer[vid + 2];
     }
+    // compute the surface normals for the buffer
+    updateVertexNormals() {
+        var idx = 0;
+        var vec3_cross_product = vec3.create();
+        var first = vec3.create();
+        var second = vec3.create();
+        var third = vec3.create();
+        var sub1 = vec3.create();
+        var sub2 = vec3.create();
+        var normalized = vec3.create();
+
+        while (idx < this.vBuffer.length) {
+            vec3.fromValues(first, this.vBuffer[idx], this.vBuffer[idx + 1], this.vBuffer[idx + 2]);
+            vec3.fromValues(second, this.vBuffer[idx + 3], this.vBuffer[idx + 4], this.vBuffer[idx + 5]);
+            vec3.fromValues(third, this.vBuffer[idx + 6], this.vBuffer[idx + 7], this.vBuffer[idx + 8]);
+            vec3.subtract(sub1, second, first);
+            vec3.subtract(sub2, third, first);
+            vec3.cross(vec3_cross_product, sub1, sub2);
+            vec3.normalize(normalized, vec3_cross_product);
+
+            this.nBuffer[idx] = normalized[0];
+            this.nBuffer[idx + 1] += normalized[1];
+            this.nBuffer[idx + 2] += normalized[2];
+            this.nBuffer[idx + 3] += normalized[0];
+            this.nBuffer[idx + 4] += normalized[1];
+            this.nBuffer[idx + 5] += normalized[2];
+            this.nBuffer[idx + 6] += normalized[0];
+            this.nBuffer[idx + 8] += normalized[2];
+            this.nBuffer[idx + 7] += normalized[1];
+
+            idx = idx + 9;
+        }
+    }
 
     /**
     * Send the buffer objects to WebGL for rendering
@@ -173,8 +206,8 @@ class Terrain{
     }
 
     getRandom(bias) {
-        var rand = Math.random() * bias;
-        if(Math.random() > .5) rand *= -1;
+        var rand = (.6 - Math.random()) * bias;
+        if(Math.random() > .6) rand *= -1;
         return rand;
     }
 
@@ -286,7 +319,7 @@ class Terrain{
         // Set the starting vertices
 
         // set the bias
-        var roughness = .1
+        var roughness = .5
         var v = [];
         this.getVertex(v, 0, 0);
         this.setVertex([v[0], v[1], this.getRandom(roughness)], 0, 0);
@@ -296,6 +329,8 @@ class Terrain{
         this.setVertex([v[0], v[1], this.getRandom(roughness)], (this.div), 0);
         this.getVertex(v, 0, (this.div));
         this.setVertex([v[0], v[1], this.getRandom(roughness)], 0, (this.div));
+
+        roughness = .4;
 
         this.subdivide(this.div - 1, roughness);
     }
@@ -339,6 +374,7 @@ generateTriangles()
     this.numVertices = this.vBuffer.length/3;
     this.numFaces = this.fBuffer.length/3;
     this.diamondSquare();
+    this.updateVertexNormals();
 }
 
 /**

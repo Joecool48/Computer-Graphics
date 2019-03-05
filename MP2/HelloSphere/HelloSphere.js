@@ -1,78 +1,87 @@
 
-/**
- * @file A simple WebGL example drawing central Illinois style terrain
- * @author Eric Shaffer <shaffer1@illinois.edu>
- */
-
-/** @global The WebGL context */
 var gl;
-
-/** @global The HTML5 canvas we draw on */
 var canvas;
-
-/** @global A simple GLSL shader program */
 var shaderProgram;
+var vertexPositionBuffer;
 
-/** @global The Modelview matrix */
-var mvMatrix = mat4.create();
+var days=0;
 
-/** @global The Projection matrix */
-var pMatrix = mat4.create();
 
-/** @global The Normal matrix */
-var nMatrix = mat3.create();
+// Create a place to store sphere geometry
+var sphereVertexPositionBuffer;
 
-/** @global The matrix stack for hierarchical modeling */
-var mvMatrixStack = [];
-
-/** @global The angle of rotation around the y axis */
-var viewRot = 10;
-
-/** @global A glmatrix vector to use for transformations */
-var transformVec = vec3.create();
-
-// Initialize the vector....
-vec3.set(transformVec,0.0,0.0,-2.0);
-
-/** @global An object holding the geometry for a 3D terrain */
-var myTerrain;
-
+//Create a place to store normals for shading
+var sphereVertexNormalBuffer;
 
 // View parameters
-/** @global Location of the camera in world coordinates */
-var eyePt = vec3.fromValues(0.0,0.0,0.0);
-/** @global Direction of the view in world coordinates */
+var eyePt = vec3.fromValues(0.0,0.0,150.0);
 var viewDir = vec3.fromValues(0.0,0.0,-1.0);
-/** @global Up vector for view matrix creation, in world coordinates */
 var up = vec3.fromValues(0.0,1.0,0.0);
-/** @global Location of a point along viewDir in world coordinates */
 var viewPt = vec3.fromValues(0.0,0.0,0.0);
 
-//Light parameters
-/** @global Light position in VIEW coordinates */
-var lightPosition = [0,3,3];
-/** @global Ambient light color/intensity for Phong reflection */
-var lAmbient = [0,0,0];
-/** @global Diffuse light color/intensity for Phong reflection */
-var lDiffuse = [1,1,1];
-/** @global Specular light color/intensity for Phong reflection */
-var lSpecular =[0,0,0];
+// Create the normal
+var nMatrix = mat3.create();
 
-//Material parameters
-/** @global Ambient material color/intensity for Phong reflection */
-var kAmbient = [1.0,1.0,1.0];
-/** @global Diffuse material color/intensity for Phong reflection */
-var kTerrainDiffuse = [205.0/255.0,163.0/255.0,63.0/255.0];
-/** @global Specular material color/intensity for Phong reflection */
-var kSpecular = [0.0,0.0,0.0];
-/** @global Shininess exponent for Phong reflection */
-var shininess = 23;
-/** @global Edge color fpr wireframeish rendering */
-var kEdgeBlack = [0.0,0.0,0.0];
-/** @global Edge color for wireframe rendering */
-var kEdgeWhite = [1.0,1.0,1.0];
+// Create ModelView matrix
+var mvMatrix = mat4.create();
+
+//Create Projection matrix
+var pMatrix = mat4.create();
+
+var mvMatrixStack = [];
+
+//-----------------------------------------------------------------
+//Color conversion  helper functions
+function hexToR(h) {return parseInt((cutHex(h)).substring(0,2),16)}
+function hexToG(h) {return parseInt((cutHex(h)).substring(2,4),16)}
+function hexToB(h) {return parseInt((cutHex(h)).substring(4,6),16)}
+function cutHex(h) {return (h.charAt(0)=="#") ? h.substring(1,7):h}
 
 
+//-------------------------------------------------------------------------
+/**
+ * Populates buffers with data for spheres
+ */
+function setupSphereBuffers() {
+    
+    var sphereSoup=[];
+    var sphereNormals=[];
+    var numT=sphereFromSubdivision(6,sphereSoup,sphereNormals);
+    console.log("Generated ", numT, " triangles"); 
+    sphereVertexPositionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, sphereVertexPositionBuffer);      
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(sphereSoup), gl.STATIC_DRAW);
+    sphereVertexPositionBuffer.itemSize = 3;
+    sphereVertexPositionBuffer.numItems = numT*3;
+    console.log(sphereSoup.length/9);
+    
+    // Specify normals to be able to do lighting calculations
+    sphereVertexNormalBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, sphereVertexNormalBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(sphereNormals),
+                  gl.STATIC_DRAW);
+    sphereVertexNormalBuffer.itemSize = 3;
+    sphereVertexNormalBuffer.numItems = numT*3;
+    
+    console.log("Normals ", sphereNormals.length/3);     
+}
+
+//-------------------------------------------------------------------------
+/**
+ * Draws a sphere from the sphere buffer
+ */
+function drawSphere(){
+ gl.bindBuffer(gl.ARRAY_BUFFER, sphereVertexPositionBuffer);
+ gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, sphereVertexPositionBuffer.itemSize, 
+                         gl.FLOAT, false, 0, 0);
+
+ // Bind normal buffer
+ gl.bindBuffer(gl.ARRAY_BUFFER, sphereVertexNormalBuffer);
+ gl.vertexAttribPointer(shaderProgram.vertexNormalAttribute, 
+                           sphereVertexNormalBuffer.itemSize,
+                           gl.FLOAT, false, 0, 0);
+ gl.drawArrays(gl.TRIANGLES, 0, sphereVertexPositionBuffer.numItems);      
+}
 
 //-------------------------------------------------------------------------
 /**
@@ -87,7 +96,7 @@ function uploadModelViewMatrixToShader() {
  * Sends projection matrix to shader
  */
 function uploadProjectionMatrixToShader() {
-  gl.uniformMatrix4fv(shaderProgram.pMatrixUniform,
+  gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, 
                       false, pMatrix);
 }
 
@@ -176,13 +185,13 @@ function createGLContext(canvas) {
  */
 function loadShaderFromDOM(id) {
   var shaderScript = document.getElementById(id);
-
+  
   // If we don't find an element with the specified id
-  // we do an early exit
+  // we do an early exit 
   if (!shaderScript) {
     return null;
   }
-
+  
   // Loop through the children for the found DOM element and
   // build up the shader source code as a string
   var shaderSource = "";
@@ -193,7 +202,7 @@ function loadShaderFromDOM(id) {
     }
     currentChild = currentChild.nextSibling;
   }
-
+ 
   var shader;
   if (shaderScript.type == "x-shader/x-fragment") {
     shader = gl.createShader(gl.FRAGMENT_SHADER);
@@ -202,14 +211,14 @@ function loadShaderFromDOM(id) {
   } else {
     return null;
   }
-
+ 
   gl.shaderSource(shader, shaderSource);
   gl.compileShader(shader);
-
+ 
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
     alert(gl.getShaderInfoLog(shader));
     return null;
-  }
+  } 
   return shader;
 }
 
@@ -217,10 +226,10 @@ function loadShaderFromDOM(id) {
 /**
  * Setup the fragment and vertex shaders
  */
-function setupShaders() {
-  vertexShader = loadShaderFromDOM("shader-vs");
-  fragmentShader = loadShaderFromDOM("shader-fs");
-
+function setupShaders(vshader,fshader) {
+  vertexShader = loadShaderFromDOM(vshader);
+  fragmentShader = loadShaderFromDOM(fshader);
+  
   shaderProgram = gl.createProgram();
   gl.attachShader(shaderProgram, vertexShader);
   gl.attachShader(shaderProgram, fragmentShader);
@@ -241,29 +250,32 @@ function setupShaders() {
   shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
   shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
   shaderProgram.nMatrixUniform = gl.getUniformLocation(shaderProgram, "uNMatrix");
-  shaderProgram.uniformLightPositionLoc = gl.getUniformLocation(shaderProgram, "uLightPosition");
-  shaderProgram.uniformAmbientLightColorLoc = gl.getUniformLocation(shaderProgram, "uAmbientLightColor");
+  shaderProgram.uniformLightPositionLoc = gl.getUniformLocation(shaderProgram, "uLightPosition");    
+  shaderProgram.uniformAmbientLightColorLoc = gl.getUniformLocation(shaderProgram, "uAmbientLightColor");  
   shaderProgram.uniformDiffuseLightColorLoc = gl.getUniformLocation(shaderProgram, "uDiffuseLightColor");
   shaderProgram.uniformSpecularLightColorLoc = gl.getUniformLocation(shaderProgram, "uSpecularLightColor");
-  shaderProgram.uniformShininessLoc = gl.getUniformLocation(shaderProgram, "uShininess");
-  shaderProgram.uniformAmbientMaterialColorLoc = gl.getUniformLocation(shaderProgram, "uKAmbient");
-  shaderProgram.uniformDiffuseMaterialColorLoc = gl.getUniformLocation(shaderProgram, "uKDiffuse");
-  shaderProgram.uniformSpecularMaterialColorLoc = gl.getUniformLocation(shaderProgram, "uKSpecular");
+  shaderProgram.uniformDiffuseMaterialColor = gl.getUniformLocation(shaderProgram, "uDiffuseMaterialColor");
+  shaderProgram.uniformAmbientMaterialColor = gl.getUniformLocation(shaderProgram, "uAmbientMaterialColor");
+  shaderProgram.uniformSpecularMaterialColor = gl.getUniformLocation(shaderProgram, "uSpecularMaterialColor");
+
+  shaderProgram.uniformShininess = gl.getUniformLocation(shaderProgram, "uShininess");    
 }
+
 
 //-------------------------------------------------------------------------
 /**
  * Sends material information to the shader
- * @param {Float32} alpha shininess coefficient
- * @param {Float32Array} a Ambient material color
- * @param {Float32Array} d Diffuse material color
- * @param {Float32Array} s Specular material color
+ * @param {Float32Array} a diffuse material color
+ * @param {Float32Array} a ambient material color
+ * @param {Float32Array} a specular material color 
+ * @param {Float32} the shininess exponent for Phong illumination
  */
-function setMaterialUniforms(alpha,a,d,s) {
-  gl.uniform1f(shaderProgram.uniformShininessLoc, alpha);
-  gl.uniform3fv(shaderProgram.uniformAmbientMaterialColorLoc, a);
-  gl.uniform3fv(shaderProgram.uniformDiffuseMaterialColorLoc, d);
-  gl.uniform3fv(shaderProgram.uniformSpecularMaterialColorLoc, s);
+function uploadMaterialToShader(dcolor, acolor, scolor,shiny) {
+  gl.uniform3fv(shaderProgram.uniformDiffuseMaterialColor, dcolor);
+  gl.uniform3fv(shaderProgram.uniformAmbientMaterialColor, acolor);
+  gl.uniform3fv(shaderProgram.uniformSpecularMaterialColor, scolor);
+    
+  gl.uniform1f(shaderProgram.uniformShininess, shiny);
 }
 
 //-------------------------------------------------------------------------
@@ -274,11 +286,11 @@ function setMaterialUniforms(alpha,a,d,s) {
  * @param {Float32Array} d Diffuse light strength
  * @param {Float32Array} s Specular light strength
  */
-function setLightUniforms(loc,a,d,s) {
+function uploadLightsToShader(loc,a,d,s) {
   gl.uniform3fv(shaderProgram.uniformLightPositionLoc, loc);
   gl.uniform3fv(shaderProgram.uniformAmbientLightColorLoc, a);
   gl.uniform3fv(shaderProgram.uniformDiffuseLightColorLoc, d);
-  gl.uniform3fv(shaderProgram.uniformSpecularLightColorLoc, s);
+  gl.uniform3fv(shaderProgram.uniformSpecularLightColorLoc, s); 
 }
 
 //----------------------------------------------------------------------------------
@@ -286,61 +298,59 @@ function setLightUniforms(loc,a,d,s) {
  * Populate buffers with data
  */
 function setupBuffers() {
-    myTerrain = new Terrain(65,-0.5,0.5,-0.5,0.5);
-    myTerrain.loadBuffers();
+    setupSphereBuffers();     
 }
 
 //----------------------------------------------------------------------------------
 /**
  * Draw call that applies matrix transformations to model and draws model in frame
  */
-function draw() {
-    //console.log("function draw()")
+function draw() { 
     var transformVec = vec3.create();
-
+  
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // We'll use perspective
-    mat4.perspective(pMatrix,degToRad(45),
-                     gl.viewportWidth / gl.viewportHeight,
-                     0.1, 200.0);
+    // We'll use perspective 
+    mat4.perspective(pMatrix,degToRad(45), gl.viewportWidth / gl.viewportHeight, 0.1, 200.0);
 
-    // We want to look down -z, so create a lookat point in that direction
+    // We want to look down -z, so create a lookat point in that direction    
     vec3.add(viewPt, eyePt, viewDir);
     // Then generate the lookat matrix and initialize the MV matrix to that view
-    mat4.lookAt(mvMatrix,eyePt,viewPt,up);
-
-    //Draw Terrain
+    mat4.lookAt(mvMatrix,eyePt,viewPt,up);    
+ 
     mvPushMatrix();
-    vec3.set(transformVec,0.0,-0.25,-2.0);
-    mat4.translate(mvMatrix, mvMatrix,transformVec);
-    mat4.rotateY(mvMatrix, mvMatrix, degToRad(viewRot));
-    mat4.rotateX(mvMatrix, mvMatrix, degToRad(-75));
+    vec3.set(transformVec,20,20,20);
+    mat4.scale(mvMatrix, mvMatrix,transformVec);
+    
+    //Get material color
+    colorVal = document.getElementById("mat-color").value
+    console.log(colorVal);
+    R = hexToR(colorVal)/255.0;
+    G = hexToG(colorVal)/255.0;
+    B = hexToB(colorVal)/255.0;
+    
+    //Get shiny
+    shiny = document.getElementById("shininess").value
+    
+    uploadLightsToShader([20,20,20],[0.0,0.0,0.0],[1.0,1.0,1.0],[1.0,1.0,1.0]);
+    uploadMaterialToShader([R,G,B],[R,G,B],[1.0,1.0,1.0],shiny);
     setMatrixUniforms();
-    setLightUniforms(lightPosition,lAmbient,lDiffuse,lSpecular);
-
-    if ((document.getElementById("polygon").checked) || (document.getElementById("wirepoly").checked))
-    {
-      setMaterialUniforms(shininess,kAmbient,kTerrainDiffuse,kSpecular);
-      myTerrain.drawTriangles();
-    }
-
-    if(document.getElementById("wirepoly").checked)
-    {
-      setMaterialUniforms(shininess,kAmbient,kEdgeBlack,kSpecular);
-      myTerrain.drawEdges();
-    }
-
-    if(document.getElementById("wireframe").checked)
-    {
-      setMaterialUniforms(shininess,kAmbient,kEdgeWhite,kSpecular);
-      myTerrain.drawEdges();
-    }
+    drawSphere();
     mvPopMatrix();
-
-
 }
+
+
+
+//----------------------------------------------------------------------------------
+/**
+ * Animation to be called from tick. Updates globals and performs animation for each tick.
+ */
+function setGouraudShader() {
+    console.log("Setting Gouraud Shader");
+    setupShaders("shader-gouraud-phong-vs","shader-gouraud-phong-fs");
+}
+
 
 //----------------------------------------------------------------------------------
 /**
@@ -349,7 +359,7 @@ function draw() {
  function startup() {
   canvas = document.getElementById("myGLCanvas");
   gl = createGLContext(canvas);
-  setupShaders();
+  setupShaders("shader-gouraud-phong-vs","shader-gouraud-phong-fs");
   setupBuffers();
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
   gl.enable(gl.DEPTH_TEST);
@@ -358,9 +368,10 @@ function draw() {
 
 //----------------------------------------------------------------------------------
 /**
- * Keeping drawing frames....
+ * Tick called for every animation frame.
  */
 function tick() {
     requestAnimFrame(tick);
     draw();
 }
+
