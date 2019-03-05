@@ -72,23 +72,6 @@ var kEdgeBlack = [0.0,0.0,0.0];
 /** @global Edge color for wireframe rendering */
 var kEdgeWhite = [1.0,1.0,1.0];
 
-/** @global Color for the lowest level of the terrain map */
-var blueColor = vec3.fromValues(0, 0, .5);
-/** @global Color for the second lowest level of the terrain map */
-var greenColor = vec3.fromValues(0, .5, 0);
-/** @global Color for the second highest level of the terrain map */
-var brownColor = vec3.fromValues(.25, .25, .1);
-/** @global Color for the highest level of the terrain map */
-var whiteColor = vec3.fromValues(1, 1, 1);
-
-/** @global Threshold for it to be blue (z axis must be below this level) */
-var blueThreshold = .2;
-/** @global Threshold for it to be green (z axis must be below this level) */
-var greenThreshold = .5;
-/** @global Threshold for it to be brown (z axis must be below this level) */
-var brownThreshold = .85;
-// Any other level is white so .85 to 1
-
 //-------------------------------------------------------------------------
 /**
  * Sends Modelview matrix to shader
@@ -265,19 +248,6 @@ function setupShaders() {
   shaderProgram.uniformDiffuseMaterialColorLoc = gl.getUniformLocation(shaderProgram, "uKDiffuse");
   shaderProgram.uniformSpecularMaterialColorLoc = gl.getUniformLocation(shaderProgram, "uKSpecular");
 
-  // setup color thresholds and colors for terrain colormap
-  shaderProgram.uBlueColorThreshold = gl.getUniformLocation(shaderProgram, "uBlueColorThreshold");
-  shaderProgram.uBlueColor = gl.getUniformLocation(shaderProgram, "uBlueColor");
-  shaderProgram.uGreenColorThreshold = gl.getUniformLocation(shaderProgram, "uGreenColorThreshold");
-  shaderProgram.uGreenColor = gl.getUniformLocation(shaderProgram, "uGreenColor");
-  shaderProgram.uBrownColorThreshold = gl.getUniformLocation(shaderProgram, "uBrownColorThreshold");
-  shaderProgram.uBrownColor = gl.getUniformLocation(shaderProgram, "uBrownColor");
-  shaderProgram.uWhiteColor = gl.getUniformLocation(shaderProgram, "uWhiteColor");
-
-
-
-
-
 }
 
 //-------------------------------------------------------------------------
@@ -308,16 +278,6 @@ function setLightUniforms(loc,a,d,s) {
   gl.uniform3fv(shaderProgram.uniformAmbientLightColorLoc, a);
   gl.uniform3fv(shaderProgram.uniformDiffuseLightColorLoc, d);
   gl.uniform3fv(shaderProgram.uniformSpecularLightColorLoc, s);
-}
-
-function setColorUniforms(blueThreshold, greenThreshold, brownThreshold, blueColor, greenColor, brownColor, whiteColor) {
-  gl.uniform1f(shaderProgram.uBlueColorThreshold, blueThreshold);
-  gl.uniform1f(shaderProgram.uGreenColorThreshold, greenThreshold);
-  gl.uniform1f(shaderProgram.uBrownColorThreshold, brownThreshold);
-  gl.uniform3fv(shaderProgram.uBlueColor, [blueColor[0], blueColor[1], blueColor[2]]);
-  gl.uniform3fv(shaderProgram.uGreenColor, [greenColor[0], greenColor[1], greenColor[2]]);
-  gl.uniform3fv(shaderProgram.uBrownColor, [brownColor[0], brownColor[1], brownColor[2]]);
-  gl.uniform3fv(shaderProgram.uWhiteColor, [whiteColor[0], whiteColor[1], whiteColor[2]]);
 }
 
 //----------------------------------------------------------------------------------
@@ -358,9 +318,6 @@ function draw() {
     mat4.rotateX(mvMatrix, mvMatrix, degToRad(-75));
     setMatrixUniforms();
     setLightUniforms(lightPosition,lAmbient,lDiffuse,lSpecular);
-
-    setColorUniforms(blueThreshold, greenThreshold, brownThreshold, blueColor, greenColor, brownColor, whiteColor);
-
 
     if ((document.getElementById("polygon").checked) || (document.getElementById("wirepoly").checked))
     {

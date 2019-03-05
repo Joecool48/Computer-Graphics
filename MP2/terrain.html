@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html lang="en">
 <head>
-<title>Hello Terrain </title>
+<title>Terrain Generation!</title>
 <meta charset="utf-8">
 </head>
 
@@ -66,6 +66,7 @@
     // (0.0, 0.0, 0.0) - vertexPositionEye3
     vec3 viewVectorEye = -normalize(vertexPositionEye3);
 
+    // compute the half angle dotted with the normal. For Binn Phong
     float rdotv = max(dot(aVertexNormal, half_angle), 0.0); // blinn phong to use half angle dot normal instead
 
     float specularLightWeightning = pow(rdotv, uShininess);
@@ -75,7 +76,8 @@
                 + (uDiffuseLightColor*uKDiffuse) * diffuseLightWeightning
                 + ((uSpecularLightColor*uKSpecular) * specularLightWeightning)));
 
-    // compute the color of the terrain based on the position
+    // compute the color of the terrain based on the position. Hardcoded values randomly selected
+    // to create terrain color mapping
     if (float(aVertexPosition[2]) < .005) {
         tot = tot + vec3(0.0, 0.0, 1.0);
     }
@@ -103,8 +105,8 @@ void main(void) {
 
 <script src="gl-matrix-min.js"></script>
 <script src="webgl-utils.js"></script>
-<script src="Terrain.js"></script>
-<script src="HelloTerrain.js"></script>
+<script src="generate.js"></script>
+<script src="setup.js"></script>
 <body onload="startup();">
  <canvas id="myGLCanvas" width="800" height="800"></canvas>
     <form id="input_form">
