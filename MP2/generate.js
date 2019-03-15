@@ -220,7 +220,7 @@ class Terrain{
     * @return {Number} A random number for use in terrain generation noise
     */
     getRandom(bias) {
-        var rand = (.6 - Math.random()) * bias;
+        var rand = (.5 - Math.random()) * bias;
         if(Math.random() > .6) rand *= -1;
         return rand;
     }
@@ -340,24 +340,25 @@ class Terrain{
     */
     subdivide(size, roughness) {
         var half = size;
+        var scale = roughness * size
         while (half >= 1) {
             // continuously subdivide in half
             half = size / 2;
             // loop through all diamonds
             for (var y = half; y < this.div; y += size) {
                 for (var x = half; x < this.div; x += size) {
-                    this.do_diamond([x,y], half, this.getRandom(roughness));
+                    this.do_diamond([x,y], half, Math.random() * scale * 2 - scale);
                 }
             }
             // loop through all the squares
             for (var y = 0; y <= this.div; y += half) {
                 for (var x = (y + half) % size; x <= this.div; x += size) {
-                    this.do_square([x,y], half, this.getRandom(roughness));
+                    this.do_square([x,y], half, Math.random() * scale * 2 - scale);
                 }
             }
             // reduce the step size and total roughness
             size /= 2;
-            roughness /= 2;
+            scale = roughness * size;
         }
     }
     /**
@@ -368,7 +369,7 @@ class Terrain{
         // Set the starting vertices
 
         // set the bias
-        var roughness = .5
+        var roughness = .006;
         var v = [];
         // Set the corners to an original value
         this.getVertex(v, 0, 0);
@@ -380,7 +381,7 @@ class Terrain{
         this.getVertex(v, 0, (this.div));
         this.setVertex([v[0], v[1], this.getRandom(roughness)], 0, (this.div));
 
-        roughness = .4;
+        roughness = .007;
         // Call the subdivide algorithm to finish it up
         this.subdivide(this.div - 1, roughness);
     }

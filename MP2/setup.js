@@ -73,6 +73,12 @@ var kEdgeBlack = [0.0,0.0,0.0];
 /** @global Edge color for wireframe rendering */
 var kEdgeWhite = [1.0,1.0,1.0];
 
+var rotQuat = quat.create();
+var rotateX = 0
+var rotateY = 0
+var rotateZ = 0
+var speed = .003;
+
 //-------------------------------------------------------------------------
 /**
  * Sends Modelview matrix to shader
@@ -248,7 +254,7 @@ function setupShaders() {
   shaderProgram.uniformAmbientMaterialColorLoc = gl.getUniformLocation(shaderProgram, "uKAmbient");
   shaderProgram.uniformDiffuseMaterialColorLoc = gl.getUniformLocation(shaderProgram, "uKDiffuse");
   shaderProgram.uniformSpecularMaterialColorLoc = gl.getUniformLocation(shaderProgram, "uKSpecular");
-
+  shaderProgram.uniformFogonToggle = gl.getUniformLocation(shaderProgram, "fogon");
 }
 
 //-------------------------------------------------------------------------
@@ -286,7 +292,7 @@ function setLightUniforms(loc,a,d,s) {
  * Populate buffers with data
  */
 function setupBuffers() {
-    myTerrain = new Terrain(65,-0.5,0.5,-0.5,0.5);
+    myTerrain = new Terrain(33,-0.5,0.5,-0.5,0.5);
     myTerrain.loadBuffers();
 }
 
@@ -298,6 +304,11 @@ function draw() {
     //console.log("function draw()")
     var transformVec = vec3.create();
 
+    // a matrix for multiplying with the view
+    var rotMat = mat4.create()
+
+    mat4.fromQuat(rotMat, rotQuat)
+
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -307,9 +318,30 @@ function draw() {
                      0.1, 200.0);
 
     // We want to look down -z, so create a lookat point in that direction
-    vec3.add(viewPt, eyePt, viewDir);
+
+    //vec3.add(viewPt, eyePt, viewDir);
     // Then generate the lookat matrix and initialize the MV matrix to that view
-    mat4.lookAt(mvMatrix,eyePt,viewPt,up);
+    var temp = vec3.create()
+    vec3.add(temp, eyePt, viewDir)
+    mat4.lookAt(mvMatrix,eyePt,temp,up);
+
+
+    var dir = vec3.clone(viewDir)
+
+    vec3.scale(dir, dir, speed)
+
+    mat4.multiply(mvMatrix, rotMat, mvMatrix);
+
+
+
+    vec3.transformQuat(viewDir, viewDir, rotQuat)
+
+    vec3.add(eyePt, eyePt, dir)
+    vec3.transformQuat(up, up, rotQuat)
+
+    mat4.translate(mvMatrix, mvMatrix, dir)
+
+
 
     //Draw Terrain
     mvPushMatrix();
@@ -337,8 +369,30 @@ function draw() {
       setMaterialUniforms(shininess,kAmbient,kEdgeWhite,kSpecular);
       myTerrain.drawEdges();
     }
+    gl.uniform1f(shaderProgram.uniformFogonToggle, document.getElementById("fogon").checked ? 1.0 : 0.0);
+
     mvPopMatrix();
 
+
+}
+
+function onKeyDown(event) {
+    console.log(event);
+
+    if (event.key === "ArrowUp") rotateX += .2
+    else if (event.key === "ArrowDown") rotateX -= .2
+    else if (event.key === "ArrowLeft") rotateZ -= .2
+    else if (event.key === "ArrowRight") rotateZ += .2
+    else if (event.key === "-") {
+        speed -= .003
+    }
+    else if (event.key === "=") {
+        speed += .003
+    }
+    rotQuat = quat.create()
+    quat.rotateZ(rotQuat, rotQuat, degToRad(rotateZ))
+
+    quat.rotateX(rotQuat, rotQuat, degToRad(rotateX))
 
 }
 
@@ -348,6 +402,7 @@ function draw() {
  */
  function startup() {
   canvas = document.getElementById("myGLCanvas");
+  document.addEventListener("keydown", onKeyDown);
   gl = createGLContext(canvas);
   setupShaders();
   setupBuffers();
