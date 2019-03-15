@@ -41,7 +41,7 @@ var myTerrain;
 
 // View parameters
 /** @global Location of the camera in world coordinates */
-var eyePt = vec3.fromValues(0.0,0.0,0.0);
+var eyePt = vec3.fromValues(0.2,0.2,0.2);
 /** @global Direction of the view in world coordinates */
 var viewDir = vec3.fromValues(0.0,0.0,-1.0);
 /** @global Up vector for view matrix creation, in world coordinates */
@@ -317,32 +317,6 @@ function draw() {
                      gl.viewportWidth / gl.viewportHeight,
                      0.1, 200.0);
 
-    // We want to look down -z, so create a lookat point in that direction
-
-    //vec3.add(viewPt, eyePt, viewDir);
-    // Then generate the lookat matrix and initialize the MV matrix to that view
-    var temp = vec3.create()
-    vec3.add(temp, eyePt, viewDir)
-    mat4.lookAt(mvMatrix,eyePt,temp,up);
-
-
-    var dir = vec3.clone(viewDir)
-
-    vec3.scale(dir, dir, speed)
-
-    mat4.multiply(mvMatrix, rotMat, mvMatrix);
-
-
-
-    vec3.transformQuat(viewDir, viewDir, rotQuat)
-
-    vec3.add(eyePt, eyePt, dir)
-    vec3.transformQuat(up, up, rotQuat)
-
-    mat4.translate(mvMatrix, mvMatrix, dir)
-
-
-
     //Draw Terrain
     mvPushMatrix();
     vec3.set(transformVec,0.0,-0.25,-2.0);
@@ -369,9 +343,26 @@ function draw() {
       setMaterialUniforms(shininess,kAmbient,kEdgeWhite,kSpecular);
       myTerrain.drawEdges();
     }
+    // fog toggle checkbox
     gl.uniform1f(shaderProgram.uniformFogonToggle, document.getElementById("fogon").checked ? 1.0 : 0.0);
 
     mvPopMatrix();
+    var temp = vec3.fromValues(0, 0, 0)
+    vec3.add(temp, eyePt, viewDir)
+    mat4.lookAt(mvMatrix,eyePt,temp,up);
+    var dir = vec3.clone(viewDir)
+    vec3.normalize(dir, dir)
+    vec3.scale(dir, dir, speed)
+
+    mat4.multiply(mvMatrix, mvMatrix, rotMat);
+
+    mat4.translate(mvMatrix, mvMatrix, dir)
+
+
+    vec3.transformQuat(viewDir, viewDir, rotQuat)
+
+    vec3.add(eyePt, eyePt, dir)
+    vec3.transformQuat(up, up, rotQuat)
 
 
 }
@@ -391,9 +382,9 @@ function onKeyDown(event) {
     }
     rotQuat = quat.create()
     quat.rotateZ(rotQuat, rotQuat, degToRad(rotateZ))
-
+    quat.rotateY(rotQuat, rotQuat, degToRad(rotateY))
     quat.rotateX(rotQuat, rotQuat, degToRad(rotateX))
-
+    quat.normalize(rotQuat, rotQuat)
 }
 
 //----------------------------------------------------------------------------------
