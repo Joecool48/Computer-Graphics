@@ -78,7 +78,10 @@ var rotateX = 0
 var rotateY = 0
 var rotateZ = 0
 var speed = .003;
-
+var arrowDown = false
+var arrowUp = false
+var arrowRight = false
+var arrowLeft = false
 //-------------------------------------------------------------------------
 /**
  * Sends Modelview matrix to shader
@@ -316,6 +319,25 @@ function draw() {
     mat4.perspective(pMatrix,degToRad(45),
                      gl.viewportWidth / gl.viewportHeight,
                      0.1, 200.0);
+    // rotate the model so that we view it correctly
+    // Lighting becomes wonky because we arent rotating and recomputing normals
+    var temp = vec3.fromValues(0, 0, 0)
+    vec3.add(temp, eyePt, viewDir)
+    mat4.lookAt(mvMatrix,eyePt,temp,up);
+    var dir = vec3.clone(viewDir)
+    vec3.normalize(dir, dir)
+    vec3.scale(dir, dir, speed)
+
+    mat4.multiply(mvMatrix, mvMatrix, rotMat);
+
+    mat4.translate(mvMatrix, mvMatrix, dir)
+
+
+    vec3.transformQuat(viewDir, viewDir, rotQuat)
+
+    vec3.add(eyePt, eyePt, dir)
+    vec3.transformQuat(up, up, rotQuat)
+
 
     //Draw Terrain
     mvPushMatrix();
@@ -344,48 +366,37 @@ function draw() {
       myTerrain.drawEdges();
     }
     // fog toggle checkbox
+    
+    mvPopMatrix();
     gl.uniform1f(shaderProgram.uniformFogonToggle, document.getElementById("fogon").checked ? 1.0 : 0.0);
 
-    mvPopMatrix();
-    var temp = vec3.fromValues(0, 0, 0)
-    vec3.add(temp, eyePt, viewDir)
-    mat4.lookAt(mvMatrix,eyePt,temp,up);
-    var dir = vec3.clone(viewDir)
-    vec3.normalize(dir, dir)
-    vec3.scale(dir, dir, speed)
-
-    mat4.multiply(mvMatrix, mvMatrix, rotMat);
-
-    mat4.translate(mvMatrix, mvMatrix, dir)
-
-
-    vec3.transformQuat(viewDir, viewDir, rotQuat)
-
-    vec3.add(eyePt, eyePt, dir)
-    vec3.transformQuat(up, up, rotQuat)
-
-
+    
+}
+// untag those as released so that we no longer move based on them
+function onKeyUp(event) {
+    if (event.key === "ArrowUp") arrowUp = false
+    if (event.key === "ArrowDown") arrowDown = false
+    if (event.key === "ArrowRight") arrowRight = false
+    if (event.key === "ArrowLeft") arrowLeft = false
 }
 
+// check to see if new keys were pressed
 function onKeyDown(event) {
     console.log(event);
 
-    if (event.key === "ArrowUp") rotateX += .2
-    else if (event.key === "ArrowDown") rotateX -= .2
-    else if (event.key === "ArrowLeft") rotateZ -= .2
-    else if (event.key === "ArrowRight") rotateZ += .2
-    else if (event.key === "-") {
+    if (event.key === "ArrowUp") arrowUp = true 
+    else if (event.key === "ArrowDown") arrowDown = true
+    if (event.key === "ArrowLeft") arrowLeft = true
+    else if (event.key === "ArrowRight") arrowRight = true
+    if (event.key === "-") {
         speed -= .003
     }
     else if (event.key === "=") {
         speed += .003
     }
-    rotQuat = quat.create()
-    quat.rotateZ(rotQuat, rotQuat, degToRad(rotateZ))
-    quat.rotateY(rotQuat, rotQuat, degToRad(rotateY))
-    quat.rotateX(rotQuat, rotQuat, degToRad(rotateX))
-    quat.normalize(rotQuat, rotQuat)
 }
+
+
 
 //----------------------------------------------------------------------------------
 /**
@@ -394,6 +405,7 @@ function onKeyDown(event) {
  function startup() {
   canvas = document.getElementById("myGLCanvas");
   document.addEventListener("keydown", onKeyDown);
+  document.addEventListener("keyup", onKeyUp);
   gl = createGLContext(canvas);
   setupShaders();
   setupBuffers();
@@ -408,5 +420,19 @@ function onKeyDown(event) {
  */
 function tick() {
     requestAnimFrame(tick);
+    // chage rotation based on keys pressed
+    if (arrowUp) rotateX += .02
+    else if (arrowDown) rotateX -= .02
+    if (arrowLeft) rotateZ -= .02
+    else if (arrowRight) rotateZ += .02
+    // construct the quaternion 
+    console.log(quat.str(rotQuat))
+    quat.rotateZ(rotQuat, rotQuat, degToRad(rotateZ))
+    quat.rotateY(rotQuat, rotQuat, degToRad(rotateY))
+    quat.rotateX(rotQuat, rotQuat, degToRad(rotateX))
+
+    console.log(quat.str(rotQuat))
     draw();
+
+    rotQuat = quat.set(rotQuat, 0, 0, 0, 1)
 }
