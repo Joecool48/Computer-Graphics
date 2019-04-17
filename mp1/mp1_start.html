@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<html lang="en">
+
+
+<head>
+  <title>Hello Illini!</title>
+
+  <script id="i-logo-vertex-shader" type="x-shader/x-vertex">
+    attribute vec4 aVertexColor;
+    attribute vec3 aVertexPosition;
+    uniform mat4 uMVMatrix;
+    varying vec4 vColor;
+    void main(void) {
+      gl_Position = uMVMatrix * vec4(aVertexPosition, 1.0);
+      vColor = aVertexColor;
+    }
+  </script>
+
+  <script id="i-logo-fragment-shader" type="x-shader/x-fragment">
+    precision mediump float;
+    varying vec4 vColor;
+    void main(void) {
+      gl_FragColor = vColor;
+    }
+  </script>
+
+
+  <meta charset="utf-8">
+  <script src="Common/gl-matrix-min.js"></script>
+  <script type="text/javascript" src="Common/webgl-utils.js"></script>
+  <script src="mp1.js"></script>
+</head>
+<body onload="start();">
+<canvas id="myWebGLCanvas" width="1000" height="1000"></canvas>
+</body>
+</html>
