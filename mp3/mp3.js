@@ -64,6 +64,8 @@ var hostUrl = "http://localhost:8080/";
 // the teapot file's name
 var render_mesh_name = "teapot.obj";
 
+var shouldReflect = false; // for checkbox determining whether teapot should reflect
+
 function radToDeg(r) {
   return r * 180 / Math.PI;
 }
@@ -237,7 +239,9 @@ function drawTeapot() {
         
         // tell the teapot to use the texture for the cube map to sample reflection
         gl.uniform1i(shaderProgram.uniformEnvironmentMap, 0);     
-
+        
+        gl.uniform1i(shaderProgram.uniformShouldReflect, shouldReflect);
+        
         setMatrixUniforms();
         setLightUniforms(lightPosition,lAmbient,lDiffuse,lSpecular);
 
@@ -408,6 +412,8 @@ function setupShaders() {
   shaderProgram.uniformCameraPosition = gl.getUniformLocation(shaderProgram, "uCameraPos");
 
     shaderProgram.uniformEnvironmentMap = gl.getUniformLocation(shaderProgram, "uEnvironmentMap");
+
+    shaderProgram.uniformShouldReflect = gl.getUniformLocation(shaderProgram, "uShouldReflect")
 }
 
 function setupCubeShaders() {
@@ -428,6 +434,8 @@ function setupCubeShaders() {
 
     cubeShaderProgram.cubeTextureUniform = gl.getUniformLocation(cubeShaderProgram, "uCubeTexture");
     cubeShaderProgram.cubeViewDirectionProjection = gl.getUniformLocation(cubeShaderProgram, "uCubeViewDirectionProjection");
+
+
 }
 // main function that does almost everything
 function main() {
@@ -519,6 +527,7 @@ function main() {
 
   // Draw the scene.
   function drawScene() {
+    shouldReflect = document.getElementById("Reflect").checked
     document.getElementById("eY").value=rotY;
     // Tell WebGL how to convert from clip space to pixels
     gl.viewport(0, 0, canvas.width, canvas.height);

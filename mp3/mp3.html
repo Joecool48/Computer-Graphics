@@ -80,13 +80,18 @@ varying vec3 reflectedVector;
 
 uniform samplerCube uEnvironmentMap;
 
+uniform int uShouldReflect;
+
 void main(void) {
-  //      gl_FragColor = vColor;
-        // fix this. Webgl apparently doesnt like textureCube
-        vec4 reflectedColor = textureCube(uEnvironmentMap, reflectedVector);
-        vec4 teapotColor = vec4(192.0 / 255.0, 192.0 / 255.0, 192.0 / 255.0, 1.0);
-        gl_FragColor = mix(teapotColor, reflectedColor, .7);
- }
+        // choose if it should reflect or not based on check box info
+        if (uShouldReflect != 0) {
+            vec4 reflectedColor = textureCube(uEnvironmentMap, reflectedVector);
+            vec4 teapotColor = vec4(192.0 / 255.0, 192.0 / 255.0, 192.0 / 255.0, 1.0);
+            gl_FragColor = mix(teapotColor, reflectedColor, .7);
+        } else {
+            gl_FragColor = vColor;
+        }
+    }
 </script>
 
 <script id="cube-shader-vs" type="x-shader/x-vertex">
@@ -124,6 +129,10 @@ void main(void) {
         <fieldset>
             Made by Joey Bahary for CS418<br>
             Netid: jbahary2
+        <fieldset>
+            <legend>Reflection Parameters</legend>
+            <input type="checkbox" name="primitive" id="Reflect" value="Reflect">Reflect</input>
+        </fieldset>
         <fieldset>
             <legend>Rendering Parameters</legend>
          <input type="radio" name="primitive" id="wireframe" value="wireframe"> Wireframe
