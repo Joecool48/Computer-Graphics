@@ -228,6 +228,15 @@ function drawTeapot() {
         // object is being rotated to coincide with spinning skybox, so it must have oppisite rotation
         mat4.rotateY(mvMatrix, mvMatrix, -degToRad(rotY));
         //mat4.translate(mvMatrix, mvMatrix, cameraPos); // move to cameraPos position
+        
+        // bind the earlier texture to place 0 so that webgl can use it to reflect
+        
+        gl.activeTexture(gl.TEXTURE0);
+        // bind this texture to that point so the teapot shaders can find it 
+        gl.bindTexture(gl.TEXTURE_CUBE_MAP, skyboxTexture);
+        
+        // tell the teapot to use the texture for the cube map to sample reflection
+        gl.uniform1i(shaderProgram.uniformEnvironmentMap, 0);     
 
         setMatrixUniforms();
         setLightUniforms(lightPosition,lAmbient,lDiffuse,lSpecular);
@@ -397,6 +406,8 @@ function setupShaders() {
   shaderProgram.uniformDiffuseMaterialColorLoc = gl.getUniformLocation(shaderProgram, "uKDiffuse");
   shaderProgram.uniformSpecularMaterialColorLoc = gl.getUniformLocation(shaderProgram, "uKSpecular");
   shaderProgram.uniformCameraPosition = gl.getUniformLocation(shaderProgram, "uCameraPos");
+
+    shaderProgram.uniformEnvironmentMap = gl.getUniformLocation(shaderProgram, "uEnvironmentMap");
 }
 
 function setupCubeShaders() {

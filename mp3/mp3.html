@@ -28,6 +28,9 @@ uniform vec3 uCameraPos;
 
 varying vec4 vColor;
 
+// for the fragment shader to calculate reflective portion
+varying vec3 reflectedVector;
+
 void main(void) {
 
 // Get the vertex position in eye coordinates
@@ -59,6 +62,8 @@ float rdotv = max(dot(reflectionVector, viewVectorEye), 0.0);
 
 float specularLightWeightning = pow(rdotv, uShininess);
 
+reflectedVector = reflect(viewVectorEye, aVertexNormal);
+
 // Sum up all three reflection components and send to the fragment shader
 vColor = vec4(((uAmbientLightColor*uKAmbient)
             + (uDiffuseLightColor*uKDiffuse) * diffuseLightWeightning
@@ -70,8 +75,17 @@ gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
 <script id="shader-fs" type="x-shader/x-fragment">
 precision mediump float;
 varying vec4 vColor;
+
+varying vec3 reflectedVector;
+
+uniform samplerCube uEnvironmentMap;
+
 void main(void) {
-        gl_FragColor = vColor;
+  //      gl_FragColor = vColor;
+        // fix this. Webgl apparently doesnt like textureCube
+        vec4 reflectedColor = textureCube(uEnvironmentMap, reflectedVector);
+        vec4 teapotColor = vec4(192.0 / 255.0, 192.0 / 255.0, 192.0 / 255.0, 1.0);
+        gl_FragColor = mix(teapotColor, reflectedColor, .7);
  }
 </script>
 
