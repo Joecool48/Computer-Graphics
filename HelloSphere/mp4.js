@@ -41,11 +41,20 @@ var diffuse;
 var ambient;
 var specular;
 
-var boundingBoxValue = 20;
+var boundingBoxValue = 25;
 
 var energyLost; // amount of energy lost per collision. 0 means none, and 1 means all
 
-var speedBoostAmount; // multiplier for the speed of all balls
+var drag; // amount of energy lost due to air friction
+
+// max starting speed
+var startSpeedMultiplier = 15;
+// strength of gravity
+var gravityStrength = 12;
+// time since last frame
+var then = 0; // time before
+var now = 0; // current time
+var deltaTime; // difference
 
 //-----------------------------------------------------------------
 //Color conversion  helper functions
@@ -302,9 +311,19 @@ function draw() {
         sLight = light_off;
 
     var gravityEnable = document.getElementById("enableGravity").checked
+    
+    var tempDrag = document.getElementById("drag").value
+
+    // if drag is valid make it new drag
+    if (tempDrag >= 0 && tempDrag <= 1 && tempDrag !== "")  {
+        drag = tempDrag
+    }
+    else {
+        drag = 1
+    }
     for (let i = 0; i < sphereList.length; i++) {
         if (gravityEnable)
-            sphereList[i].accelY = -.02
+            sphereList[i].accelY = -gravityStrength
         else
             sphereList[i].accelY = 0
     }
@@ -312,10 +331,8 @@ function draw() {
     energyLost = document.getElementById("energyLost").value
     if (energyLost < 0 || energyLost > 1) {
         energyLost = 0
-        document.getElementById("energyLost").value = "NaN"
+        document.getElementById("energyLost").value = 0
     }
-
-    speedBoostAmount = document.getElementById("speedBoostSlider").value / 10
 
     diffuse = [R,G,B]
     ambient = [R,G,B]
@@ -332,7 +349,7 @@ function randSign() {
 }
 
 function generateStartingVelocity() {
-    return [randSign() * Math.random() / 10, randSign() * Math.random() / 10, randSign() * Math.random() / 10]
+    return [randSign() * Math.random() * startSpeedMultiplier, randSign() * Math.random() * startSpeedMultiplier, randSign() * Math.random() * startSpeedMultiplier]
 }
 
 function generateRandomStartingPosition() {
@@ -377,8 +394,11 @@ function setGouraudShader() {
  * Tick called for every animation frame.
  */
 function tick() {
+    now = Date.now()
+    deltaTime = now - then;
     requestAnimFrame(tick);
     draw();
+    then = now
 }
 
 
@@ -435,49 +455,50 @@ class Sphere {
 
     boundSphere() {
         let normal = null
-        if(this.posX + (this.velX * speedBoostAmount) - this.sphereRadius < -boundingBoxValue) {
+        if(this.posX - this.sphereRadius < -boundingBoxValue) {
             // reflect the ball off the background with some angle of incidence
             normal = vec3.fromValues(1, 0, 0)
-            console.log("Collided -x")
-
-            // set it to be in bounds
-            //this.posX = -1 + this.sphereRadius
         }
-        else if(this.posX + (this.velX * speedBoostAmount) + this.sphereRadius > boundingBoxValue) {
+        else if(this.posX + this.sphereRadius > boundingBoxValue) {
             normal = vec3.fromValues(-1, 0, 0)
-            console.log("Collided x")
-
-            //this.posX = 1 - this.sphereRadius
         }
-        else if(this.posY + (this.velY * speedBoostAmount) - this.sphereRadius < -boundingBoxValue) {
+        else if(this.posY - this.sphereRadius < -boundingBoxValue) {
             normal = vec3.fromValues(0, 1, 0)
-            console.log("Collided -y")
-
-            //this.posY = -1 + this.sphereRadius
         }
-        else if(this.posY + (this.velY * speedBoostAmount) + this.sphereRadius > boundingBoxValue) {
+        else if(this.posY + this.sphereRadius > boundingBoxValue) {
             normal = vec3.fromValues(0, -1, 0)
-            console.log("Collided y")
-
-            //this.posY = 1 - this.sphereRadius
         }
-        else if(this.posZ + (this.velZ * speedBoostAmount) - this.sphereRadius < -boundingBoxValue) {
+        else if(this.posZ - this.sphereRadius < -boundingBoxValue) {
             normal = vec3.fromValues(0, 0, 1)
-            console.log("Collided -z")
-
-            //this.posZ = -1 + this.sphereRadius
         }
-        else if(this.posZ + (this.velZ * speedBoostAmount) + this.sphereRadius > boundingBoxValue) {
+        else if(this.posZ + this.sphereRadius > boundingBoxValue) {
             normal = vec3.fromValues(0, 0, -1)
-            console.log("Collided z")
-
-            //this.posZ = 1 - this.sphereRadius
         }
         if (normal !== null) {
             var reflected = this.reflect(vec3.fromValues(this.velX, this.velY, this.velZ), normal)
             this.velX = reflected[0] * (1 - energyLost) // calculate how much is conserved in collision
             this.velY = reflected[1] * (1 - energyLost)
             this.velZ = reflected[2] * (1 - energyLost)
+
+            // check and correct bounds if ball ever attempts to go outside by shunting it back in with each plane
+            if (this.posX - this.sphereRadius < -boundingBoxValue) {
+                this.posX = -boundingBoxValue + this.sphereRadius
+            }
+            if (this.posX + this.sphereRadius > boundingBoxValue) {
+                this.posX = boundingBoxValue - this.sphereRadius
+            }
+            if (this.posY + this.sphereRadius > boundingBoxValue) {
+                this.posY = boundingBoxValue - this.sphereRadius
+            }
+            if (this.posY - this.sphereRadius < -boundingBoxValue) {
+                this.posY = -boundingBoxValue + this.sphereRadius
+            }
+            if (this.posZ - this.sphereRadius < -boundingBoxValue) {
+                this.posZ = -boundingBoxValue + this.sphereRadius
+            }
+            if (this.posZ + this.sphereRadius > boundingBoxValue) {
+                this.posZ = boundingBoxValue - this.sphereRadius
+            }
         }
     }
 
@@ -490,17 +511,17 @@ class Sphere {
     }
 
     update() {
+
         this.boundSphere()
-
-        this.posX += (this.velX * speedBoostAmount)
-        this.posY += (this.velY * speedBoostAmount)
-        this.posZ += (this.velZ * speedBoostAmount)
-        this.velX += this.accelX
-        this.velY += this.accelY
-        this.velZ += this.accelZ
-
+        this.posX += (this.velX * (deltaTime / 1000))
+        this.posY += (this.velY * (deltaTime / 1000))
+        this.posZ += (this.velZ * (deltaTime / 1000))
+        this.velX = this.velX * Math.pow(drag, deltaTime / 1000) + this.accelX * (deltaTime / 1000)
+        this.velY = this.velY * Math.pow(drag, deltaTime / 1000) + this.accelY * (deltaTime / 1000)
+        this.velZ = this.velZ * Math.pow(drag, deltaTime / 1000) + this.accelZ * (deltaTime / 1000)
+        
         mat4.identity(this.mvMatrix)
-
+        
         // scale and translate mv matrix
         var scaleMat = mat4.create()
         var scaleVec = vec3.fromValues(this.sphereRadius, this.sphereRadius, this.sphereRadius)
@@ -517,6 +538,8 @@ class Sphere {
 
         mat4.multiply(this.mvMatrix, scaleMat, this.mvMatrix)
         mat4.multiply(this.mvMatrix, mvMatrix, this.mvMatrix)
+
+        
     }
 
     sendUniformsAndAttribs() {
